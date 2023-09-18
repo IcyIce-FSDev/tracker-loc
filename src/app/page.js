@@ -2,161 +2,69 @@
 
 import styles from "./page.module.css";
 import Map from "../../components/map";
-import { useEffect, useState } from "react";
+import Results from "../../components/results";
+import Input from "../../components/input";
 import axios from "axios";
-import Image from "next/image";
+
+import { React, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  updateGotInfo,
+  updateIp,
+  updateNewIp,
+  updateInfo,
+} from "../../lib/trackerSlice";
+
+import { getTrackedInfo } from "../../lib/api";
 
 export default function Home() {
-  // Default starting IP
-  const [ipAddress, setIpAddress] = useState("Loading...");
-  // Flag to determine if the site got clients IP
-  const [gotIp, setGotIp] = useState(false);
-  // The returned information from tracking the IP
-  const [trackedInfo, setTrackedInfo] = useState({
-    default: true,
-    location: {
-      city: "Loading...",
-      region: "Loading...",
-      zip: "Loading...",
-      timezone: "Loading...",
-    },
-    isp: {
-      ip: "Loading...",
-      isp: "Loading...",
-    },
-  });
+  const dispatch = useDispatch();
 
-  // Function to handle user input for IP
-  function handleIpInput(e) {
-    setIpAddress(e.target.value);
-  }
-
-  // Function to get information about the client location
-  async function getTrackedInfo(ip) {
-    // Key
-    const apiKey = "at_tReNxMub9AXvtKPU5KevUECiP1zuX";
-    // Built URL for query
-    const fetchURL = `https://geo.ipify.org/api/v2/country,city?apiKey=${apiKey}&ipAddress=${ip}`;
-    // Response from URL
-    const response = await fetch(fetchURL);
-    // JSON data from response
-    const info = await response.json();
-
-    // Building object for client
-    const builtInfo = {
-      location: {
-        city: info.location.city,
-        region: info.location.region,
-        zip: info.location.postalCode,
-        timezone: info.location.timezone,
-        lat: info.location.lat,
-        lng: info.location.lng,
-      },
-      isp: {
-        ip: info.ip,
-        isp: info.isp,
-      },
-    };
-
-    return builtInfo;
-  }
+  const { ip, newIp } = useSelector((state) => state.tracker);
 
   // When client first loads the website will fetch the IP address of client
   useEffect(() => {
     async function fetchIPAddress() {
       try {
         const response = await axios.get("https://api.ipify.org?format=json");
-        setIpAddress(response.data.ip);
 
-        setGotIp(true);
+        dispatch(updateIp(String(response.data.ip)));
+
+        dispatch(updateNewIp(Boolean(true)));
       } catch (error) {
         console.error("Error fetching IP address:", error);
       }
     }
 
-    if (!gotIp) {
-      fetchIPAddress();
-    }
+    fetchIPAddress();
   }, []);
 
-  async function getData() {
-    try {
-      const builtInfo = await getTrackedInfo(ipAddress);
-      setTrackedInfo(builtInfo);
-    } catch (error) {
-      console.error("Error fetching information:", error);
-    }
-  }
-
-  // Once IP is retrieved this will then fire and fetch location details of client
+  // When clients IP is obtained it will then get info
   useEffect(() => {
-    if (gotIp) {
-      getData();
+    async function getData() {
+      if (newIp) {
+        const resp = await getTrackedInfo(ip);
+        console.log(resp);
+        dispatch(updateNewIp(Boolean(false)));
+        dispatch(updateGotInfo(Boolean(true)));
+        dispatch(updateInfo(Object(resp)));
+      }
     }
-  }, [gotIp]);
+
+    getData();
+  }, [newIp]);
 
   return (
     <main className={styles.website}>
       <div className={styles.container}>
         {/* Top portion */}
-        <div className={styles.header}>
-          <p className={styles.title}>IP Address Tracker</p>
-          <div className={styles.inputBox}>
-            <input
-              type="text"
-              value={ipAddress}
-              onChange={handleIpInput}
-              className={styles.input}
-            />
-            <button className={styles.arrowContainer} onClick={getData}>
-              <Image
-                src="/icon-arrow.svg"
-                alt="icon-arrow"
-                width="11"
-                height="14"
-              />
-            </button>
-          </div>
-        </div>
+        <Input />
 
-        {/* Info portion */}
-        <div className={styles.results}>
-          <div className={`${styles.card}`}>
-            <div className={styles.rightBorder} />
-            <p className={styles.cardTitle}>IP ADDRESS</p>
-            <p className={styles.cardResult}>{trackedInfo.isp.ip}</p>
-          </div>
-
-          <div className={`${styles.card}`}>
-            <div className={styles.rightBorder} />
-            <p className={styles.cardTitle}>LOCATION</p>
-            <p className={styles.cardResult}>
-              {trackedInfo.default
-                ? "Loading..."
-                : `${trackedInfo.location.city}, ${trackedInfo.location.region} ${trackedInfo.location.zip}`}
-            </p>
-          </div>
-
-          <div className={`${styles.card}`}>
-            <div className={styles.rightBorder} />
-            <p className={styles.cardTitle}>TIMEZONE</p>
-            <p className={styles.cardResult}>
-              {trackedInfo.default
-                ? "Loading..."
-                : `UTC ${trackedInfo.location.timezone}`}
-            </p>
-          </div>
-
-          <div className={`${styles.card}`}>
-            <p className={styles.cardTitle}>ISP</p>
-            <p className={styles.cardResult}>{trackedInfo.isp.isp}</p>
-          </div>
-        </div>
+        {/* Results portion */}
+        <Results />
 
         {/* Map portion */}
-        <div className={styles.map}>
-          <Map trackedInfo={trackedInfo} gotIp={gotIp} />
-        </div>
+        <Map />
       </div>
     </main>
   );

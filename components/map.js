@@ -1,7 +1,13 @@
-import React, { useEffect, useRef } from "react";
-import "leaflet/dist/leaflet.css";
+"use client";
 
-export default function Map({ trackedInfo, gotIp }) {
+import React, { useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import "leaflet/dist/leaflet.css";
+import styles from "./map.module.css";
+
+export default function Map() {
+  const { gotInfo, info } = useSelector((state) => state.tracker);
+
   const mapRef = useRef(null);
   const markerRef = useRef(null);
 
@@ -9,21 +15,15 @@ export default function Map({ trackedInfo, gotIp }) {
     const L = require("leaflet");
 
     if (
-      gotIp &&
-      trackedInfo.location.lat !== undefined &&
-      trackedInfo.location.lng !== undefined
+      gotInfo &&
+      info.location.lat !== undefined &&
+      info.location.lng !== undefined
     ) {
       if (mapRef.current) {
-        mapRef.current.setView(
-          [trackedInfo.location.lat, trackedInfo.location.lng],
-          18
-        );
+        mapRef.current.setView([info.location.lat, info.location.lng], 18);
 
         if (markerRef.current) {
-          markerRef.current.setLatLng([
-            trackedInfo.location.lat,
-            trackedInfo.location.lng,
-          ]);
+          markerRef.current.setLatLng([info.location.lat, info.location.lng]);
         } else {
           const customIcon = L.icon({
             iconUrl: "/icon-location.svg",
@@ -32,16 +32,13 @@ export default function Map({ trackedInfo, gotIp }) {
             popupAnchor: [0, -32],
           });
 
-          markerRef.current = L.marker(
-            [trackedInfo.location.lat, trackedInfo.location.lng],
-            {
-              icon: customIcon,
-            }
-          ).addTo(mapRef.current);
+          markerRef.current = L.marker([info.location.lat, info.location.lng], {
+            icon: customIcon,
+          }).addTo(mapRef.current);
         }
       } else {
         const map = L.map("map").setView(
-          [trackedInfo.location.lat, trackedInfo.location.lng],
+          [info.location.lat, info.location.lng],
           18
         );
 
@@ -56,16 +53,17 @@ export default function Map({ trackedInfo, gotIp }) {
           popupAnchor: [0, -32],
         });
 
-        markerRef.current = L.marker(
-          [trackedInfo.location.lat, trackedInfo.location.lng],
-          {
-            icon: customIcon,
-          }
-        ).addTo(map);
+        markerRef.current = L.marker([info.location.lat, info.location.lng], {
+          icon: customIcon,
+        }).addTo(map);
         mapRef.current = map;
       }
     }
-  }, [trackedInfo, gotIp]);
+  }, [info, gotInfo]);
 
-  return <div id="map" style={{ width: "100%", height: "70vh" }}></div>;
+  return (
+    <div className={styles.map}>
+      <div id="map" style={{ width: "100%", height: "70vh" }}></div>
+    </div>
+  );
 }
