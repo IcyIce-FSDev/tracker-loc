@@ -8,11 +8,6 @@ import store from "../../lib/store";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: "IP-Tracker",
-  description: "Website to track an IP address",
-};
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

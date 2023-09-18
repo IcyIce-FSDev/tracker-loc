@@ -2,10 +2,16 @@
 
 import styles from "./input.module.css";
 import Image from "next/image";
+import axios from "axios";
 
-import React from "react";
+import { React, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { updateIp, updateInfo } from "../lib/trackerSlice";
+import {
+  updateGotInfo,
+  updateIp,
+  updateNewIp,
+  updateInfo,
+} from "../lib/trackerSlice";
 
 import { getTrackedInfo } from "../lib/api";
 
@@ -13,7 +19,7 @@ export default function Input() {
   // Dispatch command
   const dispatch = useDispatch();
   // Access the state from slice
-  const { ip } = useSelector((state) => state.tracker);
+  const { ip, newIp } = useSelector((state) => state.tracker);
 
   // Function to handle user input for IP
   function handleIpInput(e) {
@@ -24,6 +30,38 @@ export default function Input() {
   function handleClick() {
     dispatch(updateIp(String("")));
   }
+
+  // When client first loads the website will fetch the IP address of client
+  useEffect(() => {
+    async function fetchIPAddress() {
+      try {
+        const response = await axios.get("https://api.ipify.org?format=json");
+
+        dispatch(updateIp(String(response.data.ip)));
+
+        dispatch(updateNewIp(Boolean(true)));
+      } catch (error) {
+        console.error("Error fetching IP address:", error);
+      }
+    }
+
+    fetchIPAddress();
+  }, []);
+
+  // When clients IP is obtained it will then get info
+  useEffect(() => {
+    async function getData() {
+      if (newIp) {
+        const resp = await getTrackedInfo(ip);
+        console.log(resp);
+        dispatch(updateNewIp(Boolean(false)));
+        dispatch(updateGotInfo(Boolean(true)));
+        dispatch(updateInfo(Object(resp)));
+      }
+    }
+
+    getData();
+  }, [newIp]);
 
   async function getData() {
     try {
